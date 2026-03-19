@@ -7,8 +7,7 @@ on:
     - cron: '30 4 * * *'  # 10:00 AM IST - follow-ups
 
 jobs:
-  send-initial:
-    if: github.event.schedule == '30 3 * * *'
+  send-initial: 
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -27,7 +26,6 @@ jobs:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
 
   send-followup:
-    if: github.event.schedule == '30 4 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
