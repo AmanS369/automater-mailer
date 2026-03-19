@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: cold-email-bot
+    env: node
+    buildCommand: npm install
+    startCommand: node src/index.js
+    envVars:
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REDIRECT_URI
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: YOUR_EMAIL
+        sync: false
+      - key: NODE_ENV
+        value: production

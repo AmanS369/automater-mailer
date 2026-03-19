@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cold Email Bot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3148;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+    .header .pill {
+      background: #3b82f620;
+      color: #60a5fa;
+      border: 1px solid #3b82f640;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 0;
+      height: calc(100vh - 57px);
+    }
+
+    .sidebar {
+      background: #1a1d27;
+      border-right: 1px solid #2d3148;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .main {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    /* Upload zones */
+    .upload-zone {
+      border: 2px dashed #2d3148;
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .upload-zone:hover { border-color: #3b82f6; background: #3b82f608; }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-zone .icon { font-size: 24px; margin-bottom: 8px; }
+    .upload-zone .text { font-size: 13px; color: #94a3b8; }
+    .upload-zone .subtext { font-size: 11px; color: #475569; margin-top: 4px; }
+    .upload-zone.has-file { border-color: #22c55e40; background: #22c55e08; }
+    .upload-zone.has-file .icon::after { content: ' ✓'; color: #22c55e; }
+
+    /* Stats row */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .stat-card {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .stat-card .num { font-size: 28px; font-weight: 700; color: #fff; }
+    .stat-card .lbl { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .stat-card.blue .num { color: #60a5fa; }
+    .stat-card.green .num { color: #4ade80; }
+    .stat-card.yellow .num { color: #fbbf24; }
+    .stat-card.purple .num { color: #a78bfa; }
+
+    /* Email editor */
+    .editor-card {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .editor-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid #2d3148;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .editor-header h3 { font-size: 14px; font-weight: 600; }
+    .editor-body { padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+
+    input[type="text"], textarea {
+      background: #0f1117;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      color: #e2e8f0;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, textarea:focus { border-color: #3b82f6; }
+    textarea { resize: vertical; min-height: 200px; line-height: 1.6; }
+
+    label.field-label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; display: block; }
+
+    .resume-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #22c55e15;
+      border: 1px solid #22c55e30;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: #4ade80;
+    }
+    .resume-badge.missing {
+      background: #f59e0b15;
+      border-color: #f59e0b30;
+      color: #fbbf24;
+    }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 10px; }
+    .btn {
+      flex: 1;
+      padding: 11px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-schedule { background: #7c3aed; color: white; }
+    .btn-schedule:hover { background: #6d28d9; }
+    .btn-secondary { background: #1e293b; color: #e2e8f0; border: 1px solid #2d3148; }
+    .btn-secondary:hover { background: #273449; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Contacts table */
+    .table-card {
+      background: #1a1d27;
+      border: 1px solid #2d3148;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .table-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid #2d3148;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .table-header h3 { font-size: 14px; font-weight: 600; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+      border-bottom: 1px solid #2d3148;
+    }
+    td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid #1e2435; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #ffffff04; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-pending    { background: #64748b20; color: #94a3b8; }
+    .badge-sent       { background: #3b82f620; color: #60a5fa; }
+    .badge-follow1    { background: #f59e0b20; color: #fbbf24; }
+    .badge-follow2    { background: #f9731620; color: #fb923c; }
+    .badge-replied    { background: #22c55e20; color: #4ade80; }
+    .badge-done       { background: #64748b20; color: #64748b; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 13px;
+      z-index: 999;
+      display: none;
+      gap: 8px;
+      align-items: center;
+      box-shadow: 0 8px 32px #0008;
+    }
+    .toast.show { display: flex; }
+    .toast.success { border-color: #22c55e50; color: #4ade80; }
+    .toast.error   { border-color: #ef444450; color: #f87171; }
+
+    .empty-state {
+      padding: 48px;
+      text-align: center;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #475569;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ Cold Email Bot</h1>
+  <span class="pill">Auto Follow-ups</span>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div>
+      <div class="section-label">1. Upload Apollo CSV</div>
+      <div class="upload-zone" id="csvZone">
+        <input type="file" id="csvInput" accept=".csv" onchange="handleCsvUpload(this)" />
+        <div class="icon" id="csvIcon">📄</div>
+        <div class="text">Drop Apollo CSV here</div>
+        <div class="subtext">Extracts First Name, Email, Company</div>
+      </div>
+      <div class="hint" id="csvHint"></div>
+    </div>
+
+    <div>
+      <div class="section-label">2. Upload Resume (PDF)</div>
+      <div class="upload-zone" id="resumeZone">
+        <input type="file" id="resumeInput" accept=".pdf" onchange="handleResumeUpload(this)" />
+        <div class="icon" id="resumeIcon">📎</div>
+        <div class="text">Drop your resume PDF</div>
+        <div class="subtext">Replaces previous resume on server</div>
+      </div>
+      <div id="resumeBadge"></div>
+    </div>
+
+    <div>
+      <div class="section-label">Schedule Info</div>
+      <div style="font-size: 12px; color: #64748b; line-height: 1.8;">
+        🕘 <strong style="color:#94a3b8">9:00 AM IST</strong> — Initial emails sent<br>
+        🕙 <strong style="color:#94a3b8">10:00 AM IST</strong> — Follow-up (after 2 days if no reply)<br>
+        <br>
+        <span style="color: #475569;">Replies auto-detected via Gmail API — replied contacts are skipped automatically.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- Stats -->
+    <div class="stats" id="statsRow">
+      <div class="stat-card"><div class="num" id="statTotal">—</div><div class="lbl">Total Contacts</div></div>
+      <div class="stat-card blue"><div class="num" id="statSent">—</div><div class="lbl">Emails Sent</div></div>
+      <div class="stat-card yellow"><div class="num" id="statFollowUp">—</div><div class="lbl">Follow-ups Sent</div></div>
+      <div class="stat-card green"><div class="num" id="statReplied">—</div><div class="lbl">Replied</div></div>    </div>
+
+    <!-- Email Editor -->
+    <div class="editor-card">
+      <div class="editor-header">
+        <h3>📝 Email Template</h3>
+        <div id="resumeStatus" class="resume-badge missing">⚠ No resume attached</div>
+      </div>
+      <div class="editor-body">
+        <div>
+          <label class="field-label">Subject Line</label>
+          <input type="text" id="emailSubject" value="" />
+        </div>
+        <div>
+          <label class="field-label">Body — use {{firstName}} and {{company}} as placeholders</label>
+          <textarea id="emailBody"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="sendNow()">⚡ Send Now</button>
+          <button class="btn btn-schedule" onclick="scheduleSend()">🕘 Schedule 9 AM</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contacts Table -->
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Contacts</h3>
+        <button class="btn btn-secondary" style="flex:0;padding:6px 14px;font-size:12px;" onclick="loadContacts()">↻ Refresh</button>
+      </div>
+      <div id="contactsTable">
+        <div class="empty-state">Upload a CSV to see contacts here</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = '/api';
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = (type === 'success' ? '✓ ' : '✗ ') + msg;
+    t.className = `toast show ${type}`;
+    setTimeout(() => t.className = 'toast', 3500);
+  }
+
+  // ── Load template on start ────────────────────────────────────────────────
+  async function loadTemplate() {
+    const res = await fetch(`${API}/template`);
+    const data = await res.json();
+    document.getElementById('emailSubject').value = data.subject;
+    document.getElementById('emailBody').value = data.body;
+
+    const statusEl = document.getElementById('resumeStatus');
+    if (data.resumeAttached) {
+      statusEl.className = 'resume-badge';
+      statusEl.textContent = `📎 ${data.resumeFileName}`;
+    } else {
+      statusEl.className = 'resume-badge missing';
+      statusEl.textContent = '⚠ No resume attached';
+    }
+  }
+
+  // ── Upload CSV ─────────────────────────────────────────────────────────────
+  async function handleCsvUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('csv', file);
+
+    try {
+      const res = await fetch(`${API}/upload-csv`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      document.getElementById('csvZone').classList.add('has-file');
+      document.getElementById('csvIcon').textContent = '✅';
+      document.getElementById('csvHint').textContent = `Added ${data.added} new contacts (${data.total} total)`;
+      showToast(`${data.added} contacts added from CSV`);
+      loadContacts();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  // ── Upload Resume ──────────────────────────────────────────────────────────
+  async function handleResumeUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('resume', file);
+
+    try {
+      const res = await fetch(`${API}/upload-resume`, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      document.getElementById('resumeZone').classList.add('has-file');
+      document.getElementById('resumeIcon').textContent = '✅';
+
+      const statusEl = document.getElementById('resumeStatus');
+      statusEl.className = 'resume-badge';
+      statusEl.textContent = `📎 ${file.name}`;
+
+      showToast('Resume uploaded successfully');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  // ── Send Now ───────────────────────────────────────────────────────────────
+  async function sendNow() {
+    const subject = document.getElementById('emailSubject').value.trim();
+    const body = document.getElementById('emailBody').value.trim();
+    if (!subject || !body) return showToast('Subject and body cannot be empty', 'error');
+
+    if (!confirm('Send emails NOW to all pending contacts?')) return;
+
+    try {
+      const res = await fetch(`${API}/send-now`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, body })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      showToast('Emails are being sent in the background!');
+      setTimeout(loadContacts, 3000);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  // ── Schedule Send ──────────────────────────────────────────────────────────
+  async function scheduleSend() {
+    const subject = document.getElementById('emailSubject').value.trim();
+    const body = document.getElementById('emailBody').value.trim();
+    if (!subject || !body) return showToast('Subject and body cannot be empty', 'error');
+
+    try {
+      const res = await fetch(`${API}/schedule-send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, body })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      showToast('Scheduled! Will send at 9:00 AM IST tomorrow');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  // ── Load Contacts ──────────────────────────────────────────────────────────
+  async function loadContacts() {
+    const res = await fetch(`${API}/contacts`);
+    const data = await res.json();
+    const contacts = data.contacts || [];
+
+    // Update stats
+    document.getElementById('statTotal').textContent = contacts.length;
+    document.getElementById('statSent').textContent =
+      contacts.filter(c => ['sent','follow1_sent','follow2_sent'].includes(c.status)).length;
+    document.getElementById('statFollowUp').textContent =
+      contacts.filter(c => ['follow1_sent','follow2_sent'].includes(c.status)).length;
+    document.getElementById('statReplied').textContent =
+      contacts.filter(c => c.status === 'replied').length;
+
+    const container = document.getElementById('contactsTable');
+    if (contacts.length === 0) {
+      container.innerHTML = '<div class="empty-state">No contacts yet — upload a CSV to get started</div>';
+      return;
+    }
+
+    const statusBadge = (s) => {
+      const map = {
+        pending:      ['badge-pending',  'Pending'],
+        sent:         ['badge-sent',     'Sent'],
+        follow1_sent: ['badge-follow1',  'Follow-up 1'],
+        follow2_sent: ['badge-follow2',  'Follow-up 2'],
+        replied:      ['badge-replied',  'Replied ✓'],
+        done:         ['badge-done',     'Done'],
+      };
+      const [cls, label] = map[s] || ['badge-pending', s];
+      return `<span class="badge ${cls}">${label}</span>`;
+    };
+
+    const fmt = (iso) => iso ? new Date(iso).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : '—';
+
+    container.innerHTML = `<table>
+      <thead><tr>
+        <th>Name</th><th>Email</th><th>Company</th>
+        <th>Status</th><th>Sent</th><th>Follow-up</th><th></th>
+      </tr></thead>
+      <tbody>
+        ${contacts.map(c => `<tr id="row-${btoa(c.email)}">
+          <td>${c.firstName}</td>
+          <td style="color:#94a3b8">${c.email}</td>
+          <td>${c.company || '—'}</td>
+          <td>${statusBadge(c.status)}</td>
+          <td>${fmt(c.initialSentAt)}</td>
+          <td>${fmt(c.follow1SentAt)}</td>
+          <td><button onclick="removeContact('${c.email}')" style="background:#ef444415;border:1px solid #ef444430;color:#f87171;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;">✕ Remove</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+
+  // ── Remove Contact ─────────────────────────────────────────────────────────
+  async function removeContact(email) {
+    if (!confirm(`Remove ${email} from contacts?`)) return;
+    try {
+      const res = await fetch(`${API}/contact/${encodeURIComponent(email)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      // Remove row instantly without full reload
+      const row = document.getElementById('row-' + btoa(email));
+      if (row) row.remove();
+      showToast(`${email} removed`);
+      loadContacts(); // refresh stats
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  loadTemplate();
+  loadContacts();
+</script>
+</body>
+</html>
