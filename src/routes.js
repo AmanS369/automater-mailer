@@ -5,66 +5,47 @@ const fs = require('fs');
 const router = express.Router();
 
 const { parseApolloCsv } = require('./csvParser');
-const { upsertContacts, readContacts, writeContacts, updateContact } = require('./dataStore');
+const { upsertContacts, readContacts, writeContacts, updateContact, deleteContact } = require('./dataStore');
 const { sendInitialEmail, runInitialEmailBatch } = require('./emailLogic');
-const {
-  DEFAULT_INITIAL_SUBJECT, DEFAULT_INITIAL_BODY,
-  getResumePath, saveResumePath
-} = require('./templates');
+const { DEFAULT_INITIAL_SUBJECT, DEFAULT_INITIAL_BODY, getResumePath, saveResumePath } = require('./templates');
 
-// Multer for CSV uploads
 const csvUpload = multer({ dest: 'uploads/csv/' });
-
-// Multer for resume uploads
 const resumeUpload = multer({
   dest: 'uploads/resume/',
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') cb(null, true);
-    else cb(new Error('Only PDF files allowed for resume'));
+    else cb(new Error('Only PDF files allowed'));
   }
 });
 
-// ─── Upload Apollo CSV ───────────────────────────────────────────────────────
+// ─── Upload Apollo CSV ────────────────────────────────────────────────────────
 router.post('/upload-csv', csvUpload.single('csv'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No CSV file uploaded' });
-
     const contacts = await parseApolloCsv(req.file.path);
-    const result = upsertContacts(contacts);
-
-    // Clean up temp file
+    const result = await upsertContacts(contacts);
     fs.unlinkSync(req.file.path);
-
-    res.json({
-      message: `CSV processed successfully`,
-      parsed: contacts.length,
-      added: result.added,
-      total: result.total
-    });
+    res.json({ message: 'CSV processed', parsed: contacts.length, added: result.added, total: result.total });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── Upload Resume ───────────────────────────────────────────────────────────
+// ─── Upload Resume ────────────────────────────────────────────────────────────
 router.post('/upload-resume', resumeUpload.single('resume'), (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No resume file uploaded' });
-
+    if (!req.file) return res.status(400).json({ error: 'No resume uploaded' });
     const dest = path.join(__dirname, '../uploads/resume/resume.pdf');
-
-    // Replace old resume
     if (fs.existsSync(dest)) fs.unlinkSync(dest);
     fs.renameSync(req.file.path, dest);
     saveResumePath(dest);
-
-    res.json({ message: 'Resume uploaded and saved successfully', path: dest });
+    res.json({ message: 'Resume uploaded', path: dest });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── Get current template + resume status ────────────────────────────────────
+// ─── Get template + resume status ────────────────────────────────────────────
 router.get('/template', (req, res) => {
   const resumePath = getResumePath();
   res.json({
@@ -75,59 +56,56 @@ router.get('/template', (req, res) => {
   });
 });
 
-// ─── Get all contacts ────────────────────────────────────────────────────────
-router.get('/contacts', (req, res) => {
-  const contacts = readContacts();
-  res.json({ contacts, total: contacts.length });
+// ─── Get all contacts ─────────────────────────────────────────────────────────
+router.get('/contacts', async (req, res) => {
+  try {
+    const contacts = await readContacts();
+    res.json({ contacts, total: contacts.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// ─── Send Now (immediate send to all pending) ────────────────────────────────
+// ─── Send Now ─────────────────────────────────────────────────────────────────
 router.post('/send-now', async (req, res) => {
   try {
     const { subject, body } = req.body;
     if (!subject || !body) return res.status(400).json({ error: 'Subject and body required' });
-
-    // Non-blocking — send in background
     runInitialEmailBatch(subject, body).catch(console.error);
-
     res.json({ message: 'Emails are being sent in the background' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── Schedule send (saves template for 9 AM cron) ────────────────────────────
+// ─── Schedule Send ────────────────────────────────────────────────────────────
 router.post('/schedule-send', (req, res) => {
   try {
     const { subject, body } = req.body;
     if (!subject || !body) return res.status(400).json({ error: 'Subject and body required' });
-
-    // Save custom template to disk for cron to pick up
     const templateFile = path.join(__dirname, '../data/scheduled_template.json');
+    fs.mkdirSync(path.dirname(templateFile), { recursive: true });
     fs.writeFileSync(templateFile, JSON.stringify({ subject, body }, null, 2));
-
-    res.json({ message: 'Email scheduled for 9:00 AM IST tomorrow' });
+    res.json({ message: 'Email scheduled for 9:00 AM IST' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// ─── Mark contact as replied (manual override) ───────────────────────────────
-router.post('/mark-replied', (req, res) => {
+// ─── Mark replied ─────────────────────────────────────────────────────────────
+router.post('/mark-replied', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email required' });
-  const updated = updateContact(email, { status: 'replied', repliedAt: new Date().toISOString() });
+  const updated = await updateContact(email, { status: 'replied', repliedAt: new Date().toISOString() });
   if (!updated) return res.status(404).json({ error: 'Contact not found' });
   res.json({ message: `${email} marked as replied` });
 });
 
-// ─── Delete contact ──────────────────────────────────────────────────────────
-router.delete('/contact/:email', (req, res) => {
+// ─── Delete contact ───────────────────────────────────────────────────────────
+router.delete('/contact/:email', async (req, res) => {
   const email = decodeURIComponent(req.params.email);
-  const contacts = readContacts();
-  const filtered = contacts.filter(c => c.email.toLowerCase() !== email.toLowerCase());
-  if (filtered.length === contacts.length) return res.status(404).json({ error: 'Contact not found' });
-  writeContacts(filtered);
+  const deleted = await deleteContact(email);
+  if (!deleted) return res.status(404).json({ error: 'Contact not found' });
   res.json({ message: `${email} removed` });
 });
 

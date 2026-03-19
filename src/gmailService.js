@@ -23,7 +23,7 @@ function buildRawEmail({ to, subject, htmlBody, resumePath }) {
   let raw = [
     `To: ${to}`,
     `From: ${process.env.YOUR_NAME || 'Aman Singh'} <${process.env.YOUR_EMAIL}>`,
-    `Subject: ${subject}`,
+    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
     `MIME-Version: 1.0`,
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
     '',

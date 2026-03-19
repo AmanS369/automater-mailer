@@ -20,22 +20,22 @@ const DEFAULT_INITIAL_SUBJECT = `SDE-1 Application | Aman Singh | Backend Engine
 
 const DEFAULT_INITIAL_BODY = `Hi {{firstName}},
 
-I'm Aman Singh, a SDE-1 at CCIL (fintech), where I've been working on Kafka pipelines and microservices in Java/Spring Boot.
+I'm Aman Singh, a backend engineer with about 9 months of experience at CCIL (a fintech firm), where I've been working on Kafka pipelines and microservices in Java/Spring Boot.
 
 I came across {{company}} and was genuinely excited about the kind of engineering challenges you're working on. I'd love to explore if there's a relevant SDE-1 opening on your team.
 
 Quick snapshot:
-- Hands-on with Java, Spring Boot, Kafka, Microservices, Docker
-- Worked on Node.js,React,Django,Python in past projects
-- Experience building and maintaining backend services in production
+- 600+ LeetCode problems, strong in DSA
+- Hands-on with Java, Spring Boot, Kafka, Microservices
+- Built real-time data pipelines in production
 - B.Tech IT from FCRIT (2025) with 9.64 CGPA
 
 I've attached my resume for your reference. Happy to connect for a quick chat if there's a fit.
 
 Thanks for your time,
 Aman Singh
-LinkedIn: https://www.linkedin.com/in/amans369/
-GitHub: https://github.com/amanS369`;
+LinkedIn: https://www.linkedin.com/in/aman-singh-dev
+GitHub: https://github.com/amansingh`;
 
 /**
  * Follow-up 1 — sent 2 days after initial if no reply
@@ -44,13 +44,28 @@ const DEFAULT_FOLLOW1_SUBJECT = `Following up – Aman Singh | SDE-1 Application
 
 const DEFAULT_FOLLOW1_BODY = `Hi {{firstName}},
 
-I wanted to follow up on my previous email.
+Just wanted to follow up on my previous email in case it got buried.
 
-I'm very interested in opportunities at {{company}}. Please let me know if there are any SDE-1 openings or if you can guide me further.
+I'm still very keen on exploring opportunities at {{company}}. If there's a suitable SDE-1 opening or if you could point me in the right direction, I'd really appreciate it.
 
-Happy to share more details if needed.
+Happy to share more details or hop on a quick call at your convenience.
 
 Thanks,
+Aman Singh`;
+
+/**
+ * Follow-up 2 — sent 2 days after follow-up 1 if no reply
+ */
+const DEFAULT_FOLLOW2_SUBJECT = `Last follow-up – Aman Singh`;
+
+const DEFAULT_FOLLOW2_BODY = `Hi {{firstName}},
+
+I know inboxes get busy, so this will be my last follow-up.
+
+If there's ever an opening at {{company}} that matches my profile (Java, Kafka, Microservices, Spring Boot), I'd love to be considered. I'll keep an eye on your careers page too.
+
+Wishing you a great week ahead!
+
 Aman Singh`;
 
 /**
@@ -77,6 +92,7 @@ module.exports = {
   DEFAULT_FOLLOW1_SUBJECT,
   DEFAULT_FOLLOW1_BODY,
   DEFAULT_FOLLOW2_SUBJECT,
+  DEFAULT_FOLLOW2_BODY,
   renderTemplate,
   textToHtml,
   getResumePath,

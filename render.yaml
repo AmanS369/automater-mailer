@@ -1,4 +1,5 @@
 services:
+  # Main web app
   - type: web
     name: cold-email-bot
     env: node
@@ -15,5 +16,55 @@ services:
         sync: false
       - key: YOUR_EMAIL
         sync: false
+      - key: YOUR_NAME
+        sync: false
+      - key: MONGODB_URI
+        sync: false
       - key: NODE_ENV
         value: production
+
+  # Cron job 1 — Send initial emails at 9:00 AM IST (3:30 AM UTC)
+  - type: cron
+    name: send-initial-emails
+    env: node
+    buildCommand: npm install
+    startCommand: node src/cronJobs/sendInitial.js
+    schedule: "30 3 * * *"
+    envVars:
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REDIRECT_URI
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: YOUR_EMAIL
+        sync: false
+      - key: YOUR_NAME
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+
+  # Cron job 2 — Send follow-ups at 10:00 AM IST (4:30 AM UTC)
+  - type: cron
+    name: send-followup-emails
+    env: node
+    buildCommand: npm install
+    startCommand: node src/cronJobs/sendFollowup.js
+    schedule: "30 4 * * *"
+    envVars:
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REDIRECT_URI
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: YOUR_EMAIL
+        sync: false
+      - key: YOUR_NAME
+        sync: false
+      - key: MONGODB_URI
+        sync: false
