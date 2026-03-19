@@ -5,9 +5,10 @@ const fs = require('fs');
 const router = express.Router();
 
 const { parseApolloCsv } = require('./csvParser');
-const { upsertContacts, readContacts, writeContacts, updateContact, deleteContact } = require('./dataStore');
+const { upsertContacts, readContacts, writeContacts, updateContact, deleteContact } = require("./dataStore");
+const { saveResume, getResume } = require("./resumeStore");
 const { sendInitialEmail, runInitialEmailBatch } = require('./emailLogic');
-const { DEFAULT_INITIAL_SUBJECT, DEFAULT_INITIAL_BODY, getResumePath, saveResumePath } = require('./templates');
+const { DEFAULT_INITIAL_SUBJECT, DEFAULT_INITIAL_BODY } = require('./templates');
 
 const csvUpload = multer({ dest: 'uploads/csv/' });
 const resumeUpload = multer({
@@ -32,27 +33,26 @@ router.post('/upload-csv', csvUpload.single('csv'), async (req, res) => {
 });
 
 // ─── Upload Resume ────────────────────────────────────────────────────────────
-router.post('/upload-resume', resumeUpload.single('resume'), (req, res) => {
+router.post('/upload-resume', resumeUpload.single('resume'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No resume uploaded' });
-    const dest = path.join(__dirname, '../uploads/resume/resume.pdf');
-    if (fs.existsSync(dest)) fs.unlinkSync(dest);
-    fs.renameSync(req.file.path, dest);
-    saveResumePath(dest);
-    res.json({ message: 'Resume uploaded', path: dest });
+    const base64Data = fs.readFileSync(req.file.path).toString('base64');
+    await saveResume(req.file.originalname || 'resume.pdf', base64Data);
+    fs.unlinkSync(req.file.path);
+    res.json({ message: 'Resume uploaded and saved to database', fileName: req.file.originalname });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // ─── Get template + resume status ────────────────────────────────────────────
-router.get('/template', (req, res) => {
-  const resumePath = getResumePath();
+router.get('/template', async (req, res) => {
+  const resume = await getResume();
   res.json({
     subject: DEFAULT_INITIAL_SUBJECT,
     body: DEFAULT_INITIAL_BODY,
-    resumeAttached: !!(resumePath && fs.existsSync(resumePath)),
-    resumeFileName: resumePath ? path.basename(resumePath) : null
+    resumeAttached: !!resume,
+    resumeFileName: resume ? resume.fileName : null
   });
 });
 

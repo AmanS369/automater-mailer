@@ -16,26 +16,26 @@ function saveResumePath(filePath) {
  * Default initial cold email template
  * Supports {{firstName}} and {{company}} placeholders
  */
-const DEFAULT_INITIAL_SUBJECT = `SDE-1 Application | Aman Singh | Backend Engineer (Java, Kafka, Microservices)`;
+const DEFAULT_INITIAL_SUBJECT = `SDE-1 Application | Aman Singh | Backend Engineer `;
 
 const DEFAULT_INITIAL_BODY = `Hi {{firstName}},
 
-I'm Aman Singh, a backend engineer with about 9 months of experience at CCIL (a fintech firm), where I've been working on Kafka pipelines and microservices in Java/Spring Boot.
+I'm Aman Singh, SDE-1 at CCIL (fintech), where I've been working on Kafka pipelines and microservices in Java/Spring Boot.
 
 I came across {{company}} and was genuinely excited about the kind of engineering challenges you're working on. I'd love to explore if there's a relevant SDE-1 opening on your team.
 
 Quick snapshot:
-- 600+ LeetCode problems, strong in DSA
 - Hands-on with Java, Spring Boot, Kafka, Microservices
-- Built real-time data pipelines in production
+- Worked on Node.js,React,Django,Docker,Python and AWS in various projects
+- Experience in building and maintaining production-grade applications
 - B.Tech IT from FCRIT (2025) with 9.64 CGPA
 
 I've attached my resume for your reference. Happy to connect for a quick chat if there's a fit.
 
 Thanks for your time,
 Aman Singh
-LinkedIn: https://www.linkedin.com/in/aman-singh-dev
-GitHub: https://github.com/amansingh`;
+LinkedIn: https://www.linkedin.com/in/amans369/
+GitHub: https://github.com/amans369`;
 
 /**
  * Follow-up 1 — sent 2 days after initial if no reply
@@ -44,11 +44,11 @@ const DEFAULT_FOLLOW1_SUBJECT = `Following up – Aman Singh | SDE-1 Application
 
 const DEFAULT_FOLLOW1_BODY = `Hi {{firstName}},
 
-Just wanted to follow up on my previous email in case it got buried.
+I wanted to follow up on my previous email.
 
-I'm still very keen on exploring opportunities at {{company}}. If there's a suitable SDE-1 opening or if you could point me in the right direction, I'd really appreciate it.
+I'm very interested in opportunities at {{company}}. Please let me know if there are any SDE-1 openings or if you can guide me further.
 
-Happy to share more details or hop on a quick call at your convenience.
+Happy to share more details if needed.
 
 Thanks,
 Aman Singh`;

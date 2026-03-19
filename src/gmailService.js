@@ -1,6 +1,5 @@
 const { google } = require('googleapis');
-const fs = require('fs');
-const path = require('path');
+const { getResume } = require('./resumeStore');
 
 function getGmailClient() {
   const oauth2Client = new google.auth.OAuth2(
@@ -8,17 +7,13 @@ function getGmailClient() {
     process.env.GMAIL_CLIENT_SECRET,
     process.env.GMAIL_REDIRECT_URI
   );
-  oauth2Client.setCredentials({
-    refresh_token: process.env.GMAIL_REFRESH_TOKEN
-  });
+  oauth2Client.setCredentials({ refresh_token: process.env.GMAIL_REFRESH_TOKEN });
   return google.gmail({ version: 'v1', auth: oauth2Client });
 }
 
-/**
- * Encodes email as base64 RFC 2822 message
- */
-function buildRawEmail({ to, subject, htmlBody, resumePath }) {
+async function buildRawEmail({ to, subject, htmlBody }) {
   const boundary = `boundary_${Date.now()}`;
+  const resume = await getResume();
 
   let raw = [
     `To: ${to}`,
@@ -34,28 +29,24 @@ function buildRawEmail({ to, subject, htmlBody, resumePath }) {
     ''
   ];
 
-  // Attach resume if exists
-  if (resumePath && fs.existsSync(resumePath)) {
-    const resumeData = fs.readFileSync(resumePath).toString('base64');
-    const fileName = path.basename(resumePath);
+  if (resume && resume.data) {
     raw.push(`--${boundary}`);
-    raw.push(`Content-Type: application/pdf; name="${fileName}"`);
-    raw.push(`Content-Disposition: attachment; filename="${fileName}"`);
+    raw.push(`Content-Type: application/pdf; name="${resume.fileName}"`);
+    raw.push(`Content-Disposition: attachment; filename="${resume.fileName}"`);
     raw.push(`Content-Transfer-Encoding: base64`);
     raw.push('');
-    raw.push(resumeData);
+    raw.push(resume.data);
     raw.push('');
   }
 
   raw.push(`--${boundary}--`);
-
   const message = raw.join('\r\n');
   return Buffer.from(message).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function sendEmail({ to, subject, htmlBody, resumePath }) {
+async function sendEmail({ to, subject, htmlBody }) {
   const gmail = getGmailClient();
-  const raw = buildRawEmail({ to, subject, htmlBody, resumePath });
+  const raw = await buildRawEmail({ to, subject, htmlBody });
   const res = await gmail.users.messages.send({
     userId: 'me',
     requestBody: { raw }
@@ -63,9 +54,6 @@ async function sendEmail({ to, subject, htmlBody, resumePath }) {
   return res.data;
 }
 
-/**
- * Check if a recruiter has replied to us after a given date
- */
 async function hasReplied(fromEmail, afterDate) {
   try {
     const gmail = getGmailClient();
