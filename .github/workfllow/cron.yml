@@ -1,0 +1,45 @@
+name: Email Cron Jobs
+
+on:
+  schedule:
+    - cron: '30 3 * * *'  # 9:00 AM IST - initial emails
+    - cron: '30 4 * * *'  # 10:00 AM IST - follow-ups
+
+jobs:
+  send-initial:
+    if: github.event.schedule == '30 3 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: node src/cronJobs/sendInitial.js
+        env:
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REDIRECT_URI: ${{ secrets.GMAIL_REDIRECT_URI }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          YOUR_EMAIL: ${{ secrets.YOUR_EMAIL }}
+          YOUR_NAME: ${{ secrets.YOUR_NAME }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+
+  send-followup:
+    if: github.event.schedule == '30 4 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: node src/cronJobs/sendFollowup.js
+        env:
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REDIRECT_URI: ${{ secrets.GMAIL_REDIRECT_URI }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          YOUR_EMAIL: ${{ secrets.YOUR_EMAIL }}
+          YOUR_NAME: ${{ secrets.YOUR_NAME }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
